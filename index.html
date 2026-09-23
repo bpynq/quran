@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <meta name="theme-color" content="#000000">
+    <title>Quran</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="asset/icon-192.png">
+    <link rel="preload" href="asset/font-indopak.woff2" as="font" crossorigin>
+    
+    <style>
+      @font-face {
+        font-family: 'IndoPak';
+        src: url('asset/font-indopak.woff2') format('woff2');
+        font-display: swap;
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        background: #000;
+        color: #fff;
+        color-scheme: dark;
+      }
+
+      body {
+        font-family: system-ui, sans-serif;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background: #000;
+        gap: 0.75rem;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      button, select {
+        height: 2.125rem;
+        border: none;
+        border-radius: 0.25rem;
+        background: #000;
+        color: #fff;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+        font-family: inherit;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        cursor: pointer;
+        vertical-align: middle;
+      }
+
+      button {
+        padding: 0 0.65rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+      }
+
+      select {
+        width: 8.5rem;
+        min-width: 8.5rem;
+        padding: 0 1.85rem 0 0.85rem;
+        text-align: left;
+        text-align-last: left;
+        font-variant-numeric: tabular-nums;
+      }
+
+      option {
+        background: #111;
+        color: #fff;
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+      }
+
+      button:disabled {
+        opacity: 0.25;
+        cursor: default;
+      }
+
+      button[data-done] {
+        background: #fff;
+        color: #000;
+      }
+
+      main {
+        width: 100%;
+        max-width: 42.5rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 4rem;
+      }
+
+      h1, h2 {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      h1 {
+        margin-bottom: 0.5rem;
+      }
+
+      .portion-sub {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      h2 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      #versesList {
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
+      }
+
+      .verse-meta {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+        align-items: center;
+      }
+
+      .verse-meta span:nth-child(2) {
+        color: #fff;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.25);
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.25rem;
+      }
+
+      [lang="ar"] {
+        font-family: 'IndoPak', serif;
+        font-size: clamp(1.75rem, 1.45rem + 1.8vw, 2.5rem);
+        line-height: 2.35;
+        direction: rtl;
+        word-spacing: 0.12em;
+      }
+
+      [data-audio] {
+        cursor: pointer;
+        border-radius: 0.1875rem;
+        padding: 0 0.2rem;
+      }
+
+      [data-playing] {
+        background: #fff;
+        color: #000;
+      }
+
+      [lang="ar"] span:not([data-audio]):not(.ayah-end) {
+        color: rgba(255, 255, 255, 0.4);
+        padding: 0 0.25rem;
+      }
+
+      .ayah-end {
+        font-family: 'IndoPak', serif;
+        color: #fff;
+        padding: 0 0.35rem;
+        user-select: none;
+        display: inline-block;
+      }
+
+      #translationBody > div, #tafsirBody > div {
+        margin-bottom: 1rem;
+      }
+
+      #translationBody span, #tafsirBody span {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      #translationBody p, #tafsirBody > div > div {
+        font-family: Charter, Georgia, serif;
+        font-size: 1rem;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.85);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <button id="prevBtn">Prev</button>
+        <select id="rukuSelect"></select>
+        <button id="nextBtn">Next</button>
+      </nav>
+      <button id="markCompleteBtn">DONE</button>
+    </header>
+
+    <main>
+      <section id="rukuMetaCard" hidden>
+        <h1 id="portionHeader"></h1>
+        <div id="portionSubHeader" class="portion-sub"></div>
+      </section>
+
+      <div id="versesList"></div>
+
+      <section id="translationCard" hidden>
+        <h2>Translation</h2>
+        <div id="translationBody"></div>
+      </section>
+
+      <section id="tafsirCard" hidden>
+        <h2>Exegesis</h2>
+        <div id="tafsirBody"></div>
+      </section>
+    </main>
+
+    <script>
+      const TOTAL_RUKUS = 558;
+
+      function getRukuFromHash() {
+        const hashNum = parseInt(window.location.hash.slice(1), 10);
+        return (!isNaN(hashNum) && hashNum >= 1 && hashNum <= TOTAL_RUKUS) ? hashNum : null;
+      }
+
+      function getInitialRuku() {
+        return getRukuFromHash() || Number(localStorage.getItem('quran_current_ruku')) || 1;
+      }
+
+      let currentRuku = getInitialRuku();
+      const completed = new Set(JSON.parse(localStorage.getItem('quran_completed_rukus')) || []);
+      let rukus = [];
+      const audio = new Audio();
+      let activeWord = null;
+
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const rukuSelect = document.getElementById('rukuSelect');
+      const markCompleteBtn = document.getElementById('markCompleteBtn');
+      const rukuMetaCard = document.getElementById('rukuMetaCard');
+      const portionHeader = document.getElementById('portionHeader');
+      const portionSubHeader = document.getElementById('portionSubHeader');
+      const versesList = document.getElementById('versesList');
+      const translationCard = document.getElementById('translationCard');
+      const translationBody = document.getElementById('translationBody');
+      const tafsirCard = document.getElementById('tafsirCard');
+      const tafsirBody = document.getElementById('tafsirBody');
+
+      function stopActiveWord() {
+        if (activeWord) {
+          delete activeWord.dataset.playing;
+          activeWord = null;
+        }
+      }
+
+      audio.addEventListener('ended', stopActiveWord);
+
+      function playWord(element) {
+        stopActiveWord();
+
+        activeWord = element;
+        element.dataset.playing = 'true';
+        audio.src = element.dataset.audio;
+
+        audio.play().catch(function(error) {
+          stopActiveWord();
+          console.warn('Audio playback prevented:', error);
+        });
+      }
+
+      function updateControls() {
+        rukuSelect.value = currentRuku;
+        prevBtn.disabled = currentRuku <= 1;
+        nextBtn.disabled = currentRuku >= TOTAL_RUKUS;
+
+        if (completed.has(currentRuku)) {
+          markCompleteBtn.dataset.done = 'true';
+        } else {
+          delete markCompleteBtn.dataset.done;
+        }
+
+        Array.from(rukuSelect.options).forEach(function(option) {
+          const rukuNum = parseInt(option.value, 10);
+          const rukuData = rukus[rukuNum - 1];
+          if (rukuData) {
+            option.textContent = completed.has(rukuNum) ? rukuData.padded_number + ' DONE' : rukuData.padded_number;
+          }
+        });
+      }
+
+      function buildWordHTML(word) {
+        if (word.audio_url) {
+          return `<span data-audio="${word.audio_url}">${word.text}</span>`;
+        }
+        return `<span>${word.text}</span>`;
+      }
+
+      function buildVerseHTML(verse) {
+        const wordsHTML = verse.words.map(buildWordHTML).join(' ');
+        const endMarkerHTML = verse.end_marker ? `<span class="ayah-end">${verse.end_marker}</span>` : '';
+        const sajdahBadge = verse.sajdah_badge || '';
+
+        return `<div class="verse-container"><div class="verse-meta"><span>${verse.verse_key}</span>${sajdahBadge}</div><div lang="ar" dir="rtl">${wordsHTML} ${endMarkerHTML}</div></div>`;
+      }
+
+      function renderRuku(ruku) {
+        rukuMetaCard.hidden = false;
+        portionHeader.textContent = ruku.header_text;
+        const arabicPart = ruku.surah_arabic ? `<span lang="ar" style="font-size:1.1em; line-height:1; vertical-align:middle;">${ruku.surah_arabic}</span> • ` : '';
+        portionSubHeader.innerHTML = `${arabicPart}${ruku.revelation_place} • Para ${ruku.juz_number}: ${ruku.juz_name}`;
+
+        versesList.innerHTML = ruku.verses.map(buildVerseHTML).join('');
+
+        const translationsHTML = ruku.verses.map(function(verse) {
+          return `<div><span>${verse.verse_key}</span><p>${verse.translation}</p></div>`;
+        }).join('');
+
+        translationCard.hidden = !translationsHTML;
+        translationBody.innerHTML = translationsHTML;
+
+        const tafsirsHTML = (ruku.tafsirs || []).map(function(tafsir) {
+          const badgeHTML = tafsir.badge ? `<span>${tafsir.badge}</span>` : '';
+          return `<div>${badgeHTML}<div>${tafsir.text}</div></div>`;
+        }).join('');
+
+        tafsirCard.hidden = !tafsirsHTML;
+        tafsirBody.innerHTML = tafsirsHTML;
+      }
+
+      function goToRuku(num, skipHashUpdate) {
+        audio.pause();
+        stopActiveWord();
+
+        currentRuku = Math.max(1, Math.min(TOTAL_RUKUS, num));
+        localStorage.setItem('quran_current_ruku', currentRuku);
+
+        if (!skipHashUpdate) {
+          window.location.hash = currentRuku;
+        }
+
+        if (rukus.length > 0) {
+          renderRuku(rukus[currentRuku - 1]);
+          updateControls();
+          window.scrollTo(0, 0);
+        }
+      }
+
+      window.addEventListener('hashchange', function() {
+        const hashNum = getRukuFromHash();
+        if (hashNum && hashNum !== currentRuku) {
+          goToRuku(hashNum, true);
+        }
+      });
+
+      async function init() {
+        prevBtn.onclick = function() {
+          goToRuku(currentRuku - 1);
+        };
+
+        nextBtn.onclick = function() {
+          goToRuku(currentRuku + 1);
+        };
+
+        rukuSelect.onchange = function(event) {
+          goToRuku(parseInt(event.target.value, 10));
+        };
+
+        markCompleteBtn.onclick = function() {
+          if (completed.has(currentRuku)) {
+            completed.delete(currentRuku);
+          } else {
+            completed.add(currentRuku);
+          }
+
+          localStorage.setItem('quran_completed_rukus', JSON.stringify(Array.from(completed)));
+          updateControls();
+        };
+
+        versesList.onclick = function(event) {
+          const element = event.target.closest('[data-audio]');
+          if (element) {
+            playWord(element);
+          }
+        };
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('./sw.js').catch(function(error) {
+            console.warn('Service Worker registration failed:', error);
+          });
+        }
+
+        try {
+          const response = await fetch('asset/data-quran.json');
+          rukus = await response.json();
+
+          rukuSelect.innerHTML = rukus.map(function(ruku) {
+            const isDone = completed.has(ruku.ruku_number) ? ' DONE' : '';
+            return `<option value="${ruku.ruku_number}">${ruku.padded_number}${isDone}</option>`;
+          }).join('');
+
+          goToRuku(currentRuku);
+        } catch (error) {
+          console.error('Failed to load rukus payload:', error);
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
